@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import pydot
 from networkx.drawing.nx_pydot import graphviz_layout
 import networkx as nx
+from itertools import product
 
 with open('binary_datasets/nltcs/nltcs.train.data', "r") as file:
     reader = csv.reader(file, delimiter=',')
@@ -166,10 +167,25 @@ class BinaryCLT:
                 Y = i
                 Z = crn_parent
                 log_params[i] = [[np.log(self.conditional_prob(Y, 0, Z, 0, dataset)), np.log(self.conditional_prob(Y, 0, Z, 1, dataset))],[np.log(self.conditional_prob(Y, 1, Z, 0, dataset)), np.log(self.conditional_prob(Y, 1, Z, 1, dataset))]]
-        print(log_params)
         return log_params
+    
+    def calculate_jpmf(self):
+        perm = product([0,1], repeat = self.n)
+        distinct = np.array(perm)
+        print(distinct)
+
+
 
     def logprob(self, x, exhaustive:bool=False):
+        res = 0
+        jpmf = []
+        if exhaustive:
+            # calculate Joint Probability Mass Function (JPMF) as shown in instruction slide 19
+            for q in x:
+                for i in range(len(q)):
+                    if q[i] != np.nan:
+                        if q[i] == 0:
+                            res += self.getlogparams()[i]
         pass
 
     def sample(self, nsamples:int):
@@ -180,6 +196,7 @@ CLT = BinaryCLT(dataset)
 tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
 CLT.getlogparams()
+CLT.calculate_jpmf()
 #nx.draw(T)
 #plt.show()
 # pos = graphviz_layout(tree, prog="dot")
