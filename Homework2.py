@@ -170,22 +170,22 @@ class BinaryCLT:
         return log_params
     
     def calculate_jpmf(self):
-        perm = product([0,1], repeat = self.n)
-        distinct = np.array(perm)
-        print(distinct)
+        probs = {}
 
-
+        for point in self.data:
+            t_point = tuple(point)
+            if t_point not in probs:
+                 probs[t_point]  = 0.0
+            else:
+                probs[t_point] += 1.0/self.D
+        return probs
 
     def logprob(self, x, exhaustive:bool=False):
         res = 0
         jpmf = []
         if exhaustive:
             # calculate Joint Probability Mass Function (JPMF) as shown in instruction slide 19
-            for q in x:
-                for i in range(len(q)):
-                    if q[i] != np.nan:
-                        if q[i] == 0:
-                            res += self.getlogparams()[i]
+
         pass
 
     def sample(self, nsamples:int):
