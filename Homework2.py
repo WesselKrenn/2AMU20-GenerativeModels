@@ -12,7 +12,7 @@ import networkx as nx
 
 with open('binary_datasets/nltcs/nltcs.train.data', "r") as file:
     reader = csv.reader(file, delimiter=',')
-    dataset = np.array(list(reader)).astype(np.float)
+    dataset = np.array(list(reader)).astype(float)
 
 #print(dataset.shape) # (shape 16181, 16)
 
