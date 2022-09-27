@@ -192,10 +192,10 @@ class BinaryCLT:
                             sums_dict[t_row] = 0
                         else:
                             sums_dict[t_row] += 1
-        print(sums_dict)
-        for k in sums_dict:
-            probs_dict[k] = np.log(sums_dict[k]/self.D)
-        print(probs_dict)
+                print(sums_dict)
+                for k in sums_dict:
+                    probs_dict[k] = np.log(sums_dict[k]/self.D)
+                print(probs_dict)
 
 
     def sample(self, nsamples:int):
