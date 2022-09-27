@@ -156,18 +156,18 @@ class BinaryCLT:
     
     def getlogparams(self):
         log_params = np.zeros((len(self.tree), 2,2))
-        print(self.gettree()[0])
-        print(self.gettree()[1])
-        ordering = self.gettree()[1]
-        root_index = -1
-        for i in range(len(ordering)):
-            if ordering[i] == 0:
-                root_index = i
-                break
-        print("root_index is:" + str(i))
-        log_params[0] = [[np.log(self.single_prob(root_index, 0, self.data)), np.log(self.single_prob(root_index, 1, self.data))],[np.log(self.single_prob(root_index, 0, self.data)), np.log(self.single_prob(root_index, 1, self.data))]]
+        tr = self.gettree()[0]
+    
+        for i in range(len(tr)):
+            crn_parent = tr[i]
+            if crn_parent == -1:
+                log_params[i] = [[np.log(self.single_prob(i, 0, self.data)), np.log(self.single_prob(i, 1, self.data))],[np.log(self.single_prob(i, 0, self.data)), np.log(self.single_prob(i, 1, self.data))]]
+            else:
+                Y = i
+                Z = crn_parent
+                log_params[i] = [[np.log(self.conditional_prob(Y, 0, Z, 0, dataset)), np.log(self.conditional_prob(Y, 0, Z, 1, dataset))],[np.log(self.conditional_prob(Y, 1, Z, 0, dataset)), np.log(self.conditional_prob(Y, 1, Z, 1, dataset))]]
         print(log_params)
-        pass
+        return log_params
 
     def logprob(self, x, exhaustive:bool=False):
         pass
