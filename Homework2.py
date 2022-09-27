@@ -172,17 +172,31 @@ class BinaryCLT:
     def calculate_jpmf(self):
         probs = {}
 
-        for point in self.data:
-            t_point = tuple(point)
-            if t_point not in probs:
-                 probs[t_point]  = 0.0
-            else:
-                probs[t_point] += 1.0/self.D
-        return probs
-
     def logprob(self, x, exhaustive:bool=False):
         res = 0
         jpmf = self.calculate_jpmf()
+        sums_dict = {}
+        probs_dict = {}
+        for q in x:
+            if np.nan not in q:
+                for row in self.data:
+                    cnt = 0
+                    print("q len:" +str(len(q)))
+                    for i in range(len(row)):
+                        if row[i]== q[i]:
+                            cnt += 1
+                    if cnt == len(row):
+                        t_row = tuple(row)
+                        print(t_row)
+                        if (t_row not in sums_dict):
+                            sums_dict[t_row] = 0
+                        else:
+                            sums_dict[t_row] += 1
+        print(sums_dict)
+        for k in sums_dict:
+            probs_dict[k] = np.log(sums_dict[k]/self.D)
+        print(probs_dict)
+
 
     def sample(self, nsamples:int):
         pass
@@ -193,6 +207,7 @@ tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
 CLT.getlogparams()
 CLT.calculate_jpmf()
+CLT.logprob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0,0.0)])
 #nx.draw(T)
 #plt.show()
 # pos = graphviz_layout(tree, prog="dot")
