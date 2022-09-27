@@ -2,11 +2,12 @@ import os
 import numpy as np
 from scipy.sparse.csgraph import minimum_spanning_tree, breadth_first_order
 from scipy.special import logsumexp
+from scipy.sparse import csr_matrix
 import csv
 from collections import defaultdict
 import itertools
 import matplotlib.pyplot as plt
-#import pydot
+import pydot
 from networkx.drawing.nx_pydot import graphviz_layout
 import networkx as nx
 
@@ -69,7 +70,21 @@ def build_chow_liu_tree(X, n):
         for u in range(v):
             G.add_edge(u, v, weight=-calculate_MI(dataset, u, v))
     T = nx.minimum_spanning_tree(G)
-    bfo = breadth_first_order(T, None, False, True)
+    all_vals = []
+    for edge in T.edges:
+        all_vals.append(edge[0])
+        all_vals.append(edge[1])
+    # building the original adjacency matrix
+    adjc_mat = []
+    for x in range(max(all_vals)+1):
+        row = []
+        for y in range(max(all_vals)+1):
+            row.append(0)
+        adjc_mat.append(row)
+    for edge in T.edges:
+        adjc_mat[edge[0]][edge[1]] = 1
+    graph = csr_matrix(adjc_mat)
+    bfo = breadth_first_order(graph, 0, False, True)
     return T, bfo
 
 ###
@@ -115,13 +130,11 @@ class BinaryCLT:
         pass
 
 
-
 CLT = BinaryCLT(dataset)
 tree = CLT.gettree()
-
-print(tree)
-#T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
-#print(bfo)
-#pos = graphviz_layout(tree, prog="twopi")
-#nx.draw_networkx(tree, pos)
-#plt.show()
+T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
+nx.draw(T)
+plt.show()
+# pos = graphviz_layout(tree, prog="pip install pygraphviz")
+# nx.draw_networkx(tree, pos)
+# plt.show()
