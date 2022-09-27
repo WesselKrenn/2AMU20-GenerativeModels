@@ -174,11 +174,10 @@ class BinaryCLT:
 
     def logprob(self, x, exhaustive:bool=False):
         res = 0
-        jpmf = self.calculate_jpmf()
         sums_dict = {}
         probs_dict = {}
         for q in x:
-            if np.nan not in q:
+            if np.nan not in q: #Fully observed sample
                 for row in self.data:
                     cnt = 0
                     print("q len:" +str(len(q)))
@@ -192,11 +191,26 @@ class BinaryCLT:
                             sums_dict[t_row] = 0
                         else:
                             sums_dict[t_row] += 1
-                print(sums_dict)
                 for k in sums_dict:
                     probs_dict[k] = np.log(sums_dict[k]/self.D)
-                print(probs_dict)
-
+                return list(probs_dict.values())[0]
+            else: #marginal query
+                filtered_q = [x for x in q if not np.isnan(x)]
+                for row in self.data:
+                    cnt = 0
+                    for i in range(len(row)):
+                        if not np.isnan(q[i]):
+                            if row[i]== q[i]:
+                                cnt += 1
+                    if cnt == len(filtered_q):
+                        t_row = tuple(row)
+                        print(t_row)
+                        if (t_row not in sums_dict):
+                            sums_dict[t_row] = 0
+                        else:
+                            sums_dict[t_row] += 1
+                total_sum = sum(sums_dict.values())
+                return np.log(total_sum/self.D)
 
     def sample(self, nsamples:int):
         pass
@@ -207,7 +221,7 @@ tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
 CLT.getlogparams()
 CLT.calculate_jpmf()
-CLT.logprob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1.0,0.0)])
+CLT.logprob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1,0)])
 #nx.draw(T)
 #plt.show()
 # pos = graphviz_layout(tree, prog="dot")
