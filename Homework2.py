@@ -69,6 +69,7 @@ def build_chow_liu_tree(X, n):
         G.add_node(v)
         for u in range(v):
             G.add_edge(u, v, weight=-calculate_MI(dataset, u, v))
+
     T = nx.minimum_spanning_tree(G)
     all_vals = []
     for edge in T.edges:
@@ -96,12 +97,12 @@ class BinaryCLT:
         self.alpha = alpha
         self.data = data
         self.n = len(data[0])
+        self.D = len(data)
         # Set mutual information to a zeros "matrix" to fill in later
         self.MI = np.zeros(shape = (len(data.T), len(data.T)))
         # Compute mutual information
         for v in range(self.n):
             for u in range(v):
-                #print(u, v, calculate_MI(dataset, u, v))
                 MI_uv = calculate_MI(dataset, u, v)
 
                 self.MI[u][v] = MI_uv
@@ -114,13 +115,48 @@ class BinaryCLT:
         self.tree = self.T[1]
         self.order = self.T[0]
         self.tree[self.tree==-9999] = -1
+    
+    def single_prob(self,Z,z,dataset):
+        """
+        :Param y: index of the first parameter
+        :Param z: index of the second parameter
+        :Param dataset: the dataset for which we calculate the joint probability
+        """
+        # calculates p(Z=z)
+        s = 0
+        for row in dataset:
+            if row[Z] == z:
+                s += 1
+        return (2*self.alpha + s)/(4*a + self.D)
+
+    def joint_prob(self,Y,y,Z,z,dataset):
+        """
+        :Param y: index of the first parameter
+        :Param z: index of the second parameter
+        :Param dataset: the dataset for which we calculate the joint probability
+        """
+        # calculates p(Y=y,Z=z)
+        s = 0
+        for row in dataset:
+            if row[Y] == y and row[Z] == z:
+                s += 1
+        return (self.alpha + s)/(4*a + self.D)
+
+    def conditional_prob(self,Y,y,Z,z,dataset):
+        """
+        :Param y: index of the first parameter
+        :Param z: index of the second parameter
+        :Param dataset: the dataset for which we calculate the joint probability
+        """
+        # calculates p(Y=y|Z=z)
+        return self.joint_prob(Y, y, Z, z, dataset) / self.single_prob(Z,z, dataset)
 
     def gettree(self):
         return self.tree, self.order
     
     def getlogparams(self):
-        log_params = np.zeros((len(tree), 2,2))
-        
+        log_params = np.zeros((len(self.tree), 2,2))
+        ordering = self.gettree()[1]
         pass
 
     def logprob(self, x, exhaustive:bool=False):
@@ -133,8 +169,11 @@ class BinaryCLT:
 CLT = BinaryCLT(dataset)
 tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
-nx.draw(T)
-plt.show()
+print(tree[0])
+print(list(range(16)))
+CLT.getlogparams()
+#nx.draw(T)
+#plt.show()
 # pos = graphviz_layout(tree, prog="dot")
 # nx.draw_networkx(tree, pos)
 # plt.show()
