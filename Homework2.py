@@ -127,7 +127,7 @@ class BinaryCLT:
         for row in dataset:
             if row[Z] == z:
                 s += 1
-        return (2*self.alpha + s)/(4*a + self.D)
+        return (2*self.alpha + s)/(4*self.alpha + self.D)
 
     def joint_prob(self,Y,y,Z,z,dataset):
         """
@@ -140,7 +140,7 @@ class BinaryCLT:
         for row in dataset:
             if row[Y] == y and row[Z] == z:
                 s += 1
-        return (self.alpha + s)/(4*a + self.D)
+        return (self.alpha + s)/(4*self.alpha + self.D)
 
     def conditional_prob(self,Y,y,Z,z,dataset):
         """
@@ -156,7 +156,17 @@ class BinaryCLT:
     
     def getlogparams(self):
         log_params = np.zeros((len(self.tree), 2,2))
+        print(self.gettree()[0])
+        print(self.gettree()[1])
         ordering = self.gettree()[1]
+        root_index = -1
+        for i in range(len(ordering)):
+            if ordering[i] == 0:
+                root_index = i
+                break
+        print("root_index is:" + str(i))
+        log_params[0] = [[np.log(self.single_prob(root_index, 0, self.data)), np.log(self.single_prob(root_index, 1, self.data))],[np.log(self.single_prob(root_index, 0, self.data)), np.log(self.single_prob(root_index, 1, self.data))]]
+        print(log_params)
         pass
 
     def logprob(self, x, exhaustive:bool=False):
@@ -169,8 +179,6 @@ class BinaryCLT:
 CLT = BinaryCLT(dataset)
 tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
-print(tree[0])
-print(list(range(16)))
 CLT.getlogparams()
 #nx.draw(T)
 #plt.show()
