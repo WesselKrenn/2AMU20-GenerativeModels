@@ -182,11 +182,7 @@ class BinaryCLT:
 
     def logprob(self, x, exhaustive:bool=False):
         res = 0
-        jpmf = []
-        if exhaustive:
-            # calculate Joint Probability Mass Function (JPMF) as shown in instruction slide 19
-
-        pass
+        jpmf = self.calculate_jpmf()
 
     def sample(self, nsamples:int):
         pass
