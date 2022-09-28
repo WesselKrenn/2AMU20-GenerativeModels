@@ -173,14 +173,13 @@ class BinaryCLT:
         probs = {}
 
     def logprob(self, x, exhaustive:bool=False):
-        res = 0
+        res = []
         sums_dict = {}
         probs_dict = {}
         for q in x:
             if np.nan not in q: #Fully observed sample
                 for row in self.data:
                     cnt = 0
-                    print("q len:" +str(len(q)))
                     for i in range(len(row)):
                         if row[i]== q[i]:
                             cnt += 1
@@ -193,7 +192,7 @@ class BinaryCLT:
                             sums_dict[t_row] += 1
                 for k in sums_dict:
                     probs_dict[k] = np.log(sums_dict[k]/self.D)
-                return list(probs_dict.values())[0]
+                res.append(list(probs_dict.values())[0])
             else: #marginal query
                 filtered_q = [x for x in q if not np.isnan(x)]
                 for row in self.data:
@@ -204,13 +203,13 @@ class BinaryCLT:
                                 cnt += 1
                     if cnt == len(filtered_q):
                         t_row = tuple(row)
-                        print(t_row)
                         if (t_row not in sums_dict):
                             sums_dict[t_row] = 0
                         else:
                             sums_dict[t_row] += 1
                 total_sum = sum(sums_dict.values())
-                return np.log(total_sum/self.D)
+                res.append(np.log(total_sum/self.D))
+        return np.array(res)
 
     def sample(self, nsamples:int):
         pass
