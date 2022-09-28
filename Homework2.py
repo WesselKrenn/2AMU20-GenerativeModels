@@ -168,9 +168,6 @@ class BinaryCLT:
                 Z = crn_parent
                 log_params[i] = [[np.log(self.conditional_prob(Y, 0, Z, 0, dataset)), np.log(self.conditional_prob(Y, 0, Z, 1, dataset))],[np.log(self.conditional_prob(Y, 1, Z, 0, dataset)), np.log(self.conditional_prob(Y, 1, Z, 1, dataset))]]
         return log_params
-    
-    def calculate_jpmf(self):
-        probs = {}
 
     def logprob(self, x, exhaustive:bool=False):
         res = []
@@ -213,7 +210,6 @@ CLT = BinaryCLT(dataset)
 tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
 CLT.getlogparams()
-CLT.calculate_jpmf()
 CLT.logprob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1,0)])
 #nx.draw(T)
 #plt.show()
