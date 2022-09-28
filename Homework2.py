@@ -178,21 +178,15 @@ class BinaryCLT:
         probs_dict = {}
         for q in x:
             if np.nan not in q: #Fully observed sample
+                frequency = 0
                 for row in self.data:
                     cnt = 0
                     for i in range(len(row)):
                         if row[i]== q[i]:
                             cnt += 1
                     if cnt == len(row):
-                        t_row = tuple(row)
-                        print(t_row)
-                        if (t_row not in sums_dict):
-                            sums_dict[t_row] = 0
-                        else:
-                            sums_dict[t_row] += 1
-                for k in sums_dict:
-                    probs_dict[k] = np.log(sums_dict[k]/self.D)
-                res.append(list(probs_dict.values())[0])
+                       frequency += 1
+                res.append(np.log(frequency/self.D))
             else: #marginal query
                 filtered_q = [x for x in q if not np.isnan(x)]
                 for row in self.data:
