@@ -155,7 +155,7 @@ class BinaryCLT:
     def gettree(self):
         return self.tree, self.order
     
-    def getlogparams(self):
+    def get_log_params(self):
         log_params = np.zeros((len(self.tree), 2,2))
         tr = self.gettree()[0]
     
@@ -171,7 +171,7 @@ class BinaryCLT:
                                 [np.log(self.conditional_prob(Y, 1, Z, 0, dataset)), np.log(self.conditional_prob(Y, 1, Z, 1, dataset))]]
         return log_params
 
-    def logprob(self, x, exhaustive:bool=False):
+    def log_prob(self, x, exhaustive:bool=False):
         res = []
         sums_dict = {}
         probs_dict = {}
@@ -194,7 +194,7 @@ class BinaryCLT:
                 res.append(np.log(total_sum/self.D))
         else:
             # Compute Conditional probabilities from logparam function
-            S = np.exp(self.getlogparams())
+            S = np.exp(self.get_log_params())
             for i in range(len(self.order)):
                 pass # TODO: Implement non exhaustive
 
@@ -207,8 +207,8 @@ class BinaryCLT:
 CLT = BinaryCLT(dataset)
 tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
-CLT.getlogparams()
-print(CLT.logprob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1,0)], exhaustive=False))
+CLT.get_log_params()
+print(CLT.log_prob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1,0)], exhaustive=False))
 #nx.draw(T)
 #plt.show()
 # pos = graphviz_layout(tree, prog="dot")
