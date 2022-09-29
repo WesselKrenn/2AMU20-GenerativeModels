@@ -12,7 +12,7 @@ from networkx.drawing.nx_pydot import graphviz_layout
 import networkx as nx
 from itertools import product
 
-with open('../binary_datasets/nltcs/nltcs.train.data', "r") as file:
+with open('binary_datasets/nltcs/nltcs.train.data', "r") as file:
     reader = csv.reader(file, delimiter=',')
     dataset = np.array(list(reader)).astype(float)
 
@@ -152,12 +152,12 @@ class BinaryCLT:
         # calculates p(Y=y|Z=z)
         return self.joint_prob(Y, y, Z, z, dataset) / self.single_prob(Z,z, dataset)
 
-    def gettree(self):
+    def get_tree(self):
         return self.tree, self.order
     
     def get_log_params(self):
         log_params = np.zeros((len(self.tree), 2,2))
-        tr = self.gettree()[0]
+        tr = self.get_tree()[0]
     
         for i in range(len(tr)):
             crn_parent = tr[i]
@@ -193,22 +193,19 @@ class BinaryCLT:
                 total_sum = sum(sums_dict.values())
                 res.append(np.log(total_sum/self.D))
         else:
-            # Compute Conditional probabilities from logparam function
-            S = np.exp(self.get_log_params())
-            for i in range(len(self.order)):
-                pass # TODO: Implement non exhaustive
-
-            return np.array(res)
+            # Compute Conditional probabilities using message passing
+            pass
+        return np.array(res)
 
     def sample(self, nsamples:int):
         pass
 
 
 CLT = BinaryCLT(dataset)
-tree = CLT.gettree()
+tree = CLT.get_tree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
 CLT.get_log_params()
-print(CLT.log_prob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1,0)], exhaustive=False))
+print(CLT.log_prob([(0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0)], exhaustive=True))
 #nx.draw(T)
 #plt.show()
 # pos = graphviz_layout(tree, prog="dot")
