@@ -198,7 +198,7 @@ class BinaryCLT:
                         if cnt == len(filtered_q):
                             t_row = tuple(row)
                             if (t_row not in sums_dict):
-                                sums_dict[t_row] = 0
+                                sums_dict[t_row] = 1
                             else:
                                 sums_dict[t_row] += 1
                     total_sum = sum(sums_dict.values())
