@@ -162,45 +162,48 @@ class BinaryCLT:
         for i in range(len(tr)):
             crn_parent = tr[i]
             if crn_parent == -1:
-                log_params[i] = [[np.log(self.single_prob(i, 0, self.data)), np.log(self.single_prob(i, 1, self.data))],[np.log(self.single_prob(i, 0, self.data)), np.log(self.single_prob(i, 1, self.data))]]
+                log_params[i] = [[np.log(self.single_prob(i, 0, self.data)), np.log(self.single_prob(i, 1, self.data))],
+                                [np.log(self.single_prob(i, 0, self.data)), np.log(self.single_prob(i, 1, self.data))]]
             else:
                 Y = i
                 Z = crn_parent
-                log_params[i] = [[np.log(self.conditional_prob(Y, 0, Z, 0, dataset)), np.log(self.conditional_prob(Y, 0, Z, 1, dataset))],[np.log(self.conditional_prob(Y, 1, Z, 0, dataset)), np.log(self.conditional_prob(Y, 1, Z, 1, dataset))]]
+                log_params[i] = [[np.log(self.conditional_prob(Y, 0, Z, 0, dataset)), np.log(self.conditional_prob(Y, 0, Z, 1, dataset))],
+                                [np.log(self.conditional_prob(Y, 1, Z, 0, dataset)), np.log(self.conditional_prob(Y, 1, Z, 1, dataset))]]
         return log_params
 
     def logprob(self, x, exhaustive:bool=False):
         res = []
         sums_dict = {}
         probs_dict = {}
-        for q in x:
-            if np.nan not in q: #Fully observed sample
-                frequency = 0
-                for row in self.data:
-                    cnt = 0
-                    for i in range(len(row)):
-                        if row[i]== q[i]:
-                            cnt += 1
-                    if cnt == len(row):
-                       frequency += 1
-                res.append(np.log(frequency/self.D))
-            else: #marginal query
-                filtered_q = [x for x in q if not np.isnan(x)]
-                for row in self.data:
-                    cnt = 0
-                    for i in range(len(row)):
-                        if not np.isnan(q[i]):
+        if exhaustive:
+            for q in x:
+                if np.nan not in q: #Fully observed sample
+                    frequency = 0
+                    for row in self.data:
+                        cnt = 0
+                        for i in range(len(row)):
                             if row[i]== q[i]:
                                 cnt += 1
-                    if cnt == len(filtered_q):
-                        t_row = tuple(row)
-                        if (t_row not in sums_dict):
-                            sums_dict[t_row] = 0
-                        else:
-                            sums_dict[t_row] += 1
-                total_sum = sum(sums_dict.values())
-                res.append(np.log(total_sum/self.D))
-        return np.array(res)
+                        if cnt == len(row):
+                            frequency += 1
+                    res.append(np.log(frequency/self.D))
+                else: #marginal query
+                    filtered_q = [x for x in q if not np.isnan(x)]
+                    for row in self.data:
+                        cnt = 0
+                        for i in range(len(row)):
+                            if not np.isnan(q[i]):
+                                if row[i]== q[i]:
+                                    cnt += 1
+                        if cnt == len(filtered_q):
+                            t_row = tuple(row)
+                            if (t_row not in sums_dict):
+                                sums_dict[t_row] = 0
+                            else:
+                                sums_dict[t_row] += 1
+                    total_sum = sum(sums_dict.values())
+                    res.append(np.log(total_sum/self.D))
+            return np.array(res)
 
     def sample(self, nsamples:int):
         pass
@@ -210,7 +213,7 @@ CLT = BinaryCLT(dataset)
 tree = CLT.gettree()
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
 CLT.getlogparams()
-CLT.logprob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1,0)])
+print(CLT.logprob([(0.0,0.0,0.0,1.0,1.0,1.0,0.0,1.0,0.0,1.0,0.0,0.0,0.0,1.0,1,0)], exhaustive=True))
 #nx.draw(T)
 #plt.show()
 # pos = graphviz_layout(tree, prog="dot")
