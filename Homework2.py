@@ -177,32 +177,21 @@ class BinaryCLT:
         probs_dict = {}
         if exhaustive:
             for q in x:
-                if np.nan not in q: #Fully observed sample
-                    frequency = 0
-                    for row in self.data:
-                        cnt = 0
-                        for i in range(len(row)):
+                filtered_q = [x for x in q if not np.isnan(x)]
+                for row in self.data:
+                    cnt = 0
+                    for i in range(len(row)):
+                        if not np.isnan(q[i]):
                             if row[i]== q[i]:
                                 cnt += 1
-                        if cnt == len(row):
-                            frequency += 1
-                    res.append(np.log(frequency/self.D))
-                else: #marginal query
-                    filtered_q = [x for x in q if not np.isnan(x)]
-                    for row in self.data:
-                        cnt = 0
-                        for i in range(len(row)):
-                            if not np.isnan(q[i]):
-                                if row[i]== q[i]:
-                                    cnt += 1
-                        if cnt == len(filtered_q):
-                            t_row = tuple(row)
-                            if (t_row not in sums_dict):
-                                sums_dict[t_row] = 1
-                            else:
-                                sums_dict[t_row] += 1
-                    total_sum = sum(sums_dict.values())
-                    res.append(np.log(total_sum/self.D))
+                    if cnt == len(filtered_q):
+                        t_row = tuple(row)
+                        if (t_row not in sums_dict):
+                            sums_dict[t_row] = 1
+                        else:
+                            sums_dict[t_row] += 1
+                total_sum = sum(sums_dict.values())
+                res.append(np.log(total_sum/self.D))
             return np.array(res)
 
     def sample(self, nsamples:int):
