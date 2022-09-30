@@ -119,7 +119,7 @@ class BinaryCLT:
         self.tree = self.T[1] # list of predecessors of each node, parent of node i is given by self.tree[i]
         self.order = self.T[0] # breadth-first list of nodes
         self.tree[self.tree==-9999] = -1 # set parent to -1 if the node has no parent
-        self.lp = self.get_log_params(self)
+        self.lp = self.get_log_params()
     
     def single_prob(self,Z,z,dataset):
         """
@@ -182,7 +182,8 @@ class BinaryCLT:
         :Param obs_rv: values of the observed random variables y
         :Param obs_ind: observed random variables y's indices
         :Param unobs_ind: unobserved random variables z's indices 
-        :Return: dictionary which contains joint probabilities p(y,z) for each value z can take (0 or 1) and the fixed, already observed values of y
+        :Return: dictionary which contains as values the joint probabilities p(y,z) for each value z can take (0 or 1) and the fixed, already observed values of y
+                 keys are given by a tuple of the values of y and z
         """
         if len(unobs_ind) == 0:
             # No more unobserved indices, so can compute a probability directly from the tree
@@ -190,34 +191,40 @@ class BinaryCLT:
             # Since we work with log probabilities, the product of the terms in the joint becomes the sum of the logs      
             total_log_prob_joint = 0
             for index in obs_ind:
-                value_rv_i = obs_rv[i]
-                index_parent_rv_i = self.tree[i]
+                value_rv_i = obs_rv[index]
+                index_parent_rv_i = self.tree[index]
                 value_parent_rv_i = obs_rv[index_parent_rv_i]
                 total_log_prob_joint += self.lp[index, value_parent_rv_i, value_rv_i]
+            
+            # Get the key for the resulting dictionary by ordering the observed rv's by their original order
+            vals = list(zip(obs_rv.copy(), obs_ind.copy()))
+            vals.sort(key = lambda vals: vals[1])
+            obs_rv_ordered = [vals[i][0] for i in range(0, len(vals))]
+            return {tuple(obs_rv_ordered): total_log_prob_joint}
         else:
             # Choose one unobserved variable and compute and merge the dictionaries for both its values
         
             # Give the last unobserved variable value 0
             # Be careful to not overwrite the previous lists
-            obs_rv_new = copy(obs_rv)
-            obs_ind_new = copy(obs_ind)
-            unobs_ind_new = copy(unobs_ind)
+            obs_rv_new = obs_rv.copy()
+            obs_ind_new = obs_ind.copy()
+            unobs_ind_new = unobs_ind.copy()
 
             obs_rv_new.append(0)
             obs_ind_new.append(unobs_ind[-1])
             unobs_ind_new.pop()
-            dict1 = self.compute_log_prob(self, obs_rv_new, obs_ind_new, unobs_ind_new)
+            dict1 = self.compute_log_prob(obs_rv_new, obs_ind_new, unobs_ind_new)
 
             # Give the unobserved variable value 1
             # Be careful to not overwrite the previous lists
-            obs_rv_new = copy(obs_rv)
-            obs_ind_new = copy(obs_ind)
-            unobs_ind_new = copy(unobs_ind)
+            obs_rv_new = obs_rv.copy()
+            obs_ind_new = obs_ind.copy()
+            unobs_ind_new = unobs_ind.copy()
 
             obs_rv_new.append(1)
             obs_ind_new.append(unobs_ind[-1])
             unobs_ind_new.pop()
-            dict2 = self.compute_log_prob(self, obs_rv_new, obs_ind_new, unobs_ind_new)
+            dict2 = self.compute_log_prob(obs_rv_new, obs_ind_new, unobs_ind_new)
 
             # Merge
             dict1.update(dict2)
@@ -236,7 +243,7 @@ class BinaryCLT:
 
                 # Gather all p(y,z) in a dictionary so that we can sum z out z by summing over this list
                 # This dictionary contains p(y,z) where y always takes the fixed, observed values but z's values can be 0 or 1
-                dict_log_probs = self.compute_log_prob(self, y_rvs_vals, y_rvs_ind, z_rvs_ind)
+                dict_log_probs = self.compute_log_prob(y_rvs_vals, y_rvs_ind, z_rvs_ind)
                 # Explicitly sum out z
                 # Note, dict_log_probs contains log(p(y,z)) so take the sum over z of p(y,z) we need to remove the log first and then reapply it after summing
                 return np.log(sum([np.exp(log_prob) for log_prob in dict_log_probs.values()]))
@@ -249,11 +256,11 @@ class BinaryCLT:
         pass
 
 
-# CLT = BinaryCLT(dataset)
-# tree = CLT.get_tree()
-# T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
-# CLT.get_log_params()
-# print(CLT.log_prob([(0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0)], exhaustive=True))
+CLT = BinaryCLT(dataset)
+tree = CLT.get_tree()
+T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
+CLT.get_log_params()
+print(CLT.log_prob([(0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,np.nan)], exhaustive=True))
 
 
 
