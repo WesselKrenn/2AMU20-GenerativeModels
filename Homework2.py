@@ -11,22 +11,23 @@ import pydot
 from networkx.drawing.nx_pydot import graphviz_layout
 import networkx as nx
 from itertools import product
+import copy
 
 with open('binary_datasets/nltcs/nltcs.train.data', "r") as file:
     reader = csv.reader(file, delimiter=',')
     dataset = np.array(list(reader)).astype(float)
 
-#print(dataset.shape) # (shape 16181, 16)
+#print(dataset.shape) # (shape 16181, 16), so 16181 samples with 16 features each
 
 ### Helper functions:
 
 def marginal_distribution(X, u):
     """
-    Return marginal dist for u'th features of data points X
+    Return marginal dist for u'th features of data points X as a dictionary of frequencies
     """
-    values = defaultdict(float)
+    values = defaultdict(float) # standard frequency of 0
     s = 1 / len(X)
-    for x in X:
+    for x in X: # count occurrences (divided by #samples) of this value for feature u
         values[x[u]] += s
     return values
 
@@ -34,11 +35,12 @@ def marginal_pair_distribution(X, u, v):
     """
     Return the marginal distribution for the u'th and v'th features of the data points, X.
     """
+    # order features by the order they occur in in the original data
     if u > v:
         u, v = v, u
-    values = defaultdict(float)
+    values = defaultdict(float) # standard frequency of 0
     s = 1. / len(X)
-    for x in X:
+    for x in X: # count occurrences (divided by #samples) of these values for features u and v
         values[(x[u], x[v])] += s
     return values
 
@@ -47,6 +49,7 @@ def calculate_MI(X, u, v):
     :Param X: data points
     :Param u & v: indices of features to calculate MI for
     """
+    # double check that we're filling in the right half of the matrix
     if u > v:
         u, v = v, u
     marginal_u = marginal_distribution(X, u)
@@ -97,13 +100,13 @@ class BinaryCLT:
     def __init__(self, data, root:int=None, alpha:float = 0.01):
         self.alpha = alpha
         self.data = data
-        self.n = len(data[0])
-        self.D = len(data)
+        self.n = len(data[0]) # amount of features
+        self.D = len(data) # amount of samples
         # Set mutual information to a zeros "matrix" to fill in later
         self.MI = np.zeros(shape = (len(data.T), len(data.T)))
         # Compute mutual information
         for v in range(self.n):
-            for u in range(v):
+            for u in range(v): # only fill in half the matrix since it is symmetrical
                 MI_uv = calculate_MI(dataset, u, v)
 
                 self.MI[u][v] = MI_uv
@@ -113,17 +116,18 @@ class BinaryCLT:
         if root == None:
             root = np.random.randint(self.MST.shape[0]-1, size=1)
         self.T = breadth_first_order(self.MST, root, False, True)
-        self.tree = self.T[1]
-        self.order = self.T[0]
-        self.tree[self.tree==-9999] = -1
+        self.tree = self.T[1] # list of predecessors of each node, parent of node i is given by self.tree[i]
+        self.order = self.T[0] # breadth-first list of nodes
+        self.tree[self.tree==-9999] = -1 # set parent to -1 if the node has no parent
+        self.lp = self.get_log_params(self)
     
     def single_prob(self,Z,z,dataset):
         """
-        :Param y: index of the first parameter
-        :Param z: index of the second parameter
+        :Param Z: index of parameter
+        :Param z: value of parameter
         :Param dataset: the dataset for which we calculate the joint probability
         """
-        # calculates p(Z=z)
+        # calculates p(Z=z) with Laplace correction
         s = 0
         for row in dataset:
             if row[Z] == z:
@@ -136,7 +140,7 @@ class BinaryCLT:
         :Param z: index of the second parameter
         :Param dataset: the dataset for which we calculate the joint probability
         """
-        # calculates p(Y=y,Z=z)
+        # calculates p(Y=y,Z=z) with Laplace correction
         s = 0
         for row in dataset:
             if row[Y] == y and row[Z] == z:
@@ -145,11 +149,13 @@ class BinaryCLT:
 
     def conditional_prob(self,Y,y,Z,z,dataset):
         """
-        :Param y: index of the first parameter
-        :Param z: index of the second parameter
+        :Param Y: index of the first parameter
+        :Param y: value of the first parameter
+        :Param Z: index of the second parameter
+        :Param z: value of the second parameter
         :Param dataset: the dataset for which we calculate the joint probability
         """
-        # calculates p(Y=y|Z=z)
+        # calculates p(Y=y|Z=z) with Laplace correction
         return self.joint_prob(Y, y, Z, z, dataset) / self.single_prob(Z,z, dataset)
 
     def get_tree(self):
@@ -171,27 +177,69 @@ class BinaryCLT:
                                 [np.log(self.conditional_prob(Y, 1, Z, 0, dataset)), np.log(self.conditional_prob(Y, 1, Z, 1, dataset))]]
         return log_params
 
+    def compute_log_prob(self, obs_rv, obs_ind, unobs_ind):
+        """
+        :Param obs_rv: values of the observed random variables y
+        :Param obs_ind: observed random variables y's indices
+        :Param unobs_ind: unobserved random variables z's indices 
+        :Return: dictionary which contains joint probabilities p(y,z) for each value z can take (0 or 1) and the fixed, already observed values of y
+        """
+        if len(unobs_ind) == 0:
+            # No more unobserved indices, so can compute a probability directly from the tree
+            # Recall that the parent of node (rv) i is given by self.tree[i]
+            # Since we work with log probabilities, the product of the terms in the joint becomes the sum of the logs      
+            total_log_prob_joint = 0
+            for index in obs_ind:
+                value_rv_i = obs_rv[i]
+                index_parent_rv_i = self.tree[i]
+                value_parent_rv_i = obs_rv[index_parent_rv_i]
+                total_log_prob_joint += self.lp[index, value_parent_rv_i, value_rv_i]
+        else:
+            # Choose one unobserved variable and compute and merge the dictionaries for both its values
+        
+            # Give the last unobserved variable value 0
+            # Be careful to not overwrite the previous lists
+            obs_rv_new = copy(obs_rv)
+            obs_ind_new = copy(obs_ind)
+            unobs_ind_new = copy(unobs_ind)
+
+            obs_rv_new.append(0)
+            obs_ind_new.append(unobs_ind[-1])
+            unobs_ind_new.pop()
+            dict1 = self.compute_log_prob(self, obs_rv_new, obs_ind_new, unobs_ind_new)
+
+            # Give the unobserved variable value 1
+            # Be careful to not overwrite the previous lists
+            obs_rv_new = copy(obs_rv)
+            obs_ind_new = copy(obs_ind)
+            unobs_ind_new = copy(unobs_ind)
+
+            obs_rv_new.append(1)
+            obs_ind_new.append(unobs_ind[-1])
+            unobs_ind_new.pop()
+            dict2 = self.compute_log_prob(self, obs_rv_new, obs_ind_new, unobs_ind_new)
+
+            # Merge
+            dict1.update(dict2)
+            return dict1
+
     def log_prob(self, x, exhaustive:bool=False):
         res = []
         sums_dict = {}
         probs_dict = {}
         if exhaustive:
-            for q in x:
-                filtered_q = [x for x in q if not np.isnan(x)]
-                for row in self.data:
-                    cnt = 0
-                    for i in range(len(row)):
-                        if not np.isnan(q[i]):
-                            if row[i]== q[i]:
-                                cnt += 1
-                    if cnt == len(filtered_q):
-                        t_row = tuple(row)
-                        if (t_row not in sums_dict):
-                            sums_dict[t_row] = 1
-                        else:
-                            sums_dict[t_row] += 1
-                total_sum = sum(sums_dict.values())
-                res.append(np.log(total_sum/self.D))
+            for query in x:
+                # First get indices of observed and unobserved RVs, and values of the observed indices
+                y_rvs_ind = [i for i in range(0, len(query)) if not np.isnan(query[i])] # observed
+                y_rvs_vals = [query[i] for i in y_rvs_ind] 
+                z_rvs_ind = [i for i in range(0, len(query)) if np.isnan(query[i])] # unobserved
+
+                # Gather all p(y,z) in a dictionary so that we can sum z out z by summing over this list
+                # This dictionary contains p(y,z) where y always takes the fixed, observed values but z's values can be 0 or 1
+                dict_log_probs = self.compute_log_prob(self, y_rvs_vals, y_rvs_ind, z_rvs_ind)
+                # Explicitly sum out z
+                # Note, dict_log_probs contains log(p(y,z)) so take the sum over z of p(y,z) we need to remove the log first and then reapply it after summing
+                return np.log(sum([np.exp(log_prob) for log_prob in dict_log_probs.values()]))
         else:
             # Compute Conditional probabilities using message passing
             pass
@@ -201,11 +249,14 @@ class BinaryCLT:
         pass
 
 
-CLT = BinaryCLT(dataset)
-tree = CLT.get_tree()
-T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
-CLT.get_log_params()
-print(CLT.log_prob([(0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0)], exhaustive=True))
+# CLT = BinaryCLT(dataset)
+# tree = CLT.get_tree()
+# T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
+# CLT.get_log_params()
+# print(CLT.log_prob([(0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,0.0,1.0,0.0,0.0,0.0,1.0,0.0,0.0)], exhaustive=True))
+
+
+
 #nx.draw(T)
 #plt.show()
 # pos = graphviz_layout(tree, prog="dot")
