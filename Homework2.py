@@ -262,7 +262,7 @@ class BinaryCLT:
                 var = self.order[j]
                 crn_prob = probs[var]
 
-                if j == 0: #the root
+                if j == 0: #the root node
                     sample_prob = crn_prob[0][1]
                 else:
                     if prev_result == 1:
@@ -272,7 +272,7 @@ class BinaryCLT:
                 random_pick = np.random.uniform(0,1,1)
                 if random_pick <= sample_prob:
                     crn_sample.append(1)
-                    prev_result = 1
+                    prev_result = 1 # storing the sample in order to know the value for the next child node
                 else:
                     crn_sample.append(0)
                     prev_result = 0
