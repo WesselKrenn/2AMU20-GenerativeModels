@@ -253,6 +253,8 @@ class BinaryCLT:
         return np.array(res)
 
     def sample(self, nsamples:int):
+        #convert log-probabilities to probabilities
+        #in order to use the mas thresholds for each node
         probs = np.exp(self.get_log_params())
         samples = []
         for i in range(nsamples):
