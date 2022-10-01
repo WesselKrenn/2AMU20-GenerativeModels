@@ -253,14 +253,40 @@ class BinaryCLT:
         return np.array(res)
 
     def sample(self, nsamples:int):
-        pass
+        probs = np.exp(self.get_log_params())
+        samples = []
+        for i in range(nsamples):
+            crn_sample = []
+            prev_result = -1
+            for j in range(len(self.order)):
+                var = self.order[j]
+                crn_prob = probs[var]
+
+                if j == 0: #the root
+                    sample_prob = crn_prob[0][1]
+                else:
+                    if prev_result == 1:
+                        sample_prob = crn_prob[1][1]
+                    else:
+                        sample_prob = crn_prob[1][0]
+                random_pick = np.random.uniform(0,1,1)
+                if random_pick <= sample_prob:
+                    crn_sample.append(1)
+                    prev_result = 1
+                else:
+                    crn_sample.append(0)
+                    prev_result = 0
+            samples.append((crn_sample))
+        return np.array(samples)
 
 
 CLT = BinaryCLT(dataset)
 tree = CLT.get_tree()
+#print(tree)
 T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
-CLT.get_log_params()
-print(CLT.log_prob([(0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,np.nan)], exhaustive=True))
+print(CLT.sample(10))
+#print(CLT.get_log_params())
+#print(CLT.log_prob([(0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,np.nan)], exhaustive=True))
 
 
 
