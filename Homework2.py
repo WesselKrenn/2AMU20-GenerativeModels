@@ -21,17 +21,19 @@ with open('binary_datasets/nltcs/nltcs.train.data', "r") as file:
 
 ### Helper functions:
 
-def marginal_distribution(X, u):
+def marginal_distribution(X, u,a):
     """
     Return marginal dist for u'th features of data points X as a dictionary of frequencies
     """
     values = defaultdict(float) # standard frequency of 0
     s = 1 / len(X)
-    for x in X: # count occurrences (divided by #samples) of this value for feature u
-        values[x[u]] += s
+    for x in X: # count occurrences of this value for feature u
+        values[x[u]] += 1
+    for x in X: # apply Laplace
+        values[x[u]] = (values[x[u]] + 2*a) / (4*a + len(X))
     return values
 
-def marginal_pair_distribution(X, u, v):
+def marginal_pair_distribution(X, u, v, a):
     """
     Return the marginal distribution for the u'th and v'th features of the data points, X.
     """
@@ -39,22 +41,23 @@ def marginal_pair_distribution(X, u, v):
     if u > v:
         u, v = v, u
     values = defaultdict(float) # standard frequency of 0
-    s = 1. / len(X)
-    for x in X: # count occurrences (divided by #samples) of these values for features u and v
-        values[(x[u], x[v])] += s
+    for x in X: # count occurrences of these values for features u and v
+        values[(x[u], x[v])] += 1
+    for x in X: # apply Laplace 
+        values[(x[u], x[v])] = (values[(x[u], x[v])] + a) / (4*a + len(X))
     return values
 
-def calculate_MI(X, u, v):
+def calculate_MI(X, u, v,a):
     """
-    :Param X: data points
+    :Param X: data pointss
     :Param u & v: indices of features to calculate MI for
     """
     # double check that we're filling in the right half of the matrix
     if u > v:
         u, v = v, u
-    marginal_u = marginal_distribution(X, u)
-    marginal_v = marginal_distribution(X, v)
-    marginal_uv = marginal_pair_distribution(X, u, v)
+    marginal_u = marginal_distribution(X, u,a)
+    marginal_v = marginal_distribution(X, v,a)
+    marginal_uv = marginal_pair_distribution(X, u, v,a)
 
     I=0.
     for x_u, p_x_u in marginal_u.items():
@@ -64,7 +67,7 @@ def calculate_MI(X, u, v):
                 I += p_x_uv * (np.log(p_x_uv) - np.log(p_x_u)- np.log(p_x_v))
     return I
 
-def build_chow_liu_tree(X, n):
+def build_chow_liu_tree(X, n,a):
     """
     Extra, visualize graph 
     """
@@ -72,7 +75,7 @@ def build_chow_liu_tree(X, n):
     for v in range(n):
         G.add_node(v)
         for u in range(v):
-            G.add_edge(u, v, weight=-calculate_MI(dataset, u, v))
+            G.add_edge(u, v, weight=-calculate_MI(dataset, u, v,a))
 
     T = nx.minimum_spanning_tree(G)
     all_vals = []
@@ -107,7 +110,7 @@ class BinaryCLT:
         # Compute mutual information
         for v in range(self.n):
             for u in range(v): # only fill in half the matrix since it is symmetrical
-                MI_uv = calculate_MI(dataset, u, v)
+                MI_uv = calculate_MI(dataset, u, v, alpha)
 
                 self.MI[u][v] = MI_uv
 
@@ -284,8 +287,8 @@ class BinaryCLT:
 
 CLT = BinaryCLT(dataset)
 tree = CLT.get_tree()
-#print(tree)
-T, bfo = build_chow_liu_tree(dataset, len(dataset[0]))
+print(tree)
+T, bfo = build_chow_liu_tree(dataset, len(dataset[0]), CLT.alpha)
 print(CLT.sample(10))
 #print(CLT.get_log_params())
 #print(CLT.log_prob([(0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,np.nan)], exhaustive=True))
