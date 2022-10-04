@@ -17,16 +17,16 @@ def estPriorsJoints(data, alpha):
     nFeatures = data.shape[1]
     nSamples = data.shape[0]
 
-    # Calculate priors marginals
-    ones_matrix = np.dot(data.T, data)
-    ones_diag = np.diag(ones_matrix)
-    priors = np.zeros((nFeatures, 2)) # create matrix of (nFeatures, 2) to fill in
+    # Calculate priors marginals with format priors[i, j] = p(X_i = j) 
+    ones_matrix = np.dot(data.T, data)      # has elements a_ij = #times variables i and j both have value 1 
+    ones_diag = np.diag(ones_matrix)        # has as elements a_i = #times variable i has value 1
+    priors = np.zeros((nFeatures, 2))       # create matrix of (nFeatures, 2) to fill in
     priors[:, 1] = (ones_diag + 2 * alpha) / (nSamples + 4 * alpha)
     priors[:, 0] = 1 - priors[:, 1]
 
-    # Calculate joint marginals
-    diag_0 = ones_diag * np.ones((nFeatures, nFeatures))
-    diag_1 = diag_0.T
+    # Calculate joint marginals with format joints[h, i, j, k] = p(X_h = j, X_i = k)
+    diag_0 = ones_diag * np.ones((nFeatures, nFeatures)) # has elements a_ij = #times variable j has value 1 (same for all i)
+    diag_1 = diag_0.T                                    # has elements a_ij = #times variable i has value 1 (same for all j)
     joints = np.zeros((nFeatures, nFeatures, 2, 2))
     joints[:, :, 0, 0] = nSamples - diag_0 - diag_1 + ones_matrix
     joints[:, :, 0, 1] = diag_0 - ones_matrix
@@ -44,13 +44,14 @@ def estMI(priors, joints):
     :param joints: joint prob distributions
     :return: The MI matrix between every feature i and j
     """
-    marginals = np.zeros((priors.shape[0], priors.shape[0], 2, 2))
-    marginals[:, :, 0, 0] = np.outer(priors[:, 0], priors[:, 0])
-    marginals[:, :, 0, 1] = np.outer(priors[:, 0], priors[:, 1])
-    marginals[:, :, 1, 0] = np.outer(priors[:, 1], priors[:, 0])
-    marginals[:, :, 1, 1] = np.outer(priors[:, 1], priors[:, 1])
+    # Format products[h, i, j, k] = p(X_h = j) * p(X_i = k)
+    products = np.zeros((priors.shape[0], priors.shape[0], 2, 2))
+    products[:, :, 0, 0] = np.outer(priors[:, 0], priors[:, 0])
+    products[:, :, 0, 1] = np.outer(priors[:, 0], priors[:, 1])
+    products[:, :, 1, 0] = np.outer(priors[:, 1], priors[:, 0])
+    products[:, :, 1, 1] = np.outer(priors[:, 1], priors[:, 1])
 
-    MI = np.sum(joints * (np.log(joints) - np.log(marginals)), axis=(2, 3))
+    MI = np.sum(joints * (np.log(joints) - np.log(products)), axis=(2, 3))
     np.fill_diagonal(MI, 0)
 
     return MI
@@ -141,7 +142,6 @@ class BinaryCLT:
         """
         queries = x.copy()
         params = self.log_params
-        #params_e = np.
         tree = self.tree
         x = np.arange(self.nFeatures).tolist()
 
@@ -149,16 +149,17 @@ class BinaryCLT:
         if not np.isnan(queries).any():
             # Convert queries to in8 to resolve indexerror
             queries = queries.astype(np.int8)
+            # For every query, compute the joint probability by summing over the conditionals which together define the tree structure
             log_prob = np.sum(params[x, queries[:, tree], queries[:, x]], axis=1)
-            #log_prob = logsumexp(params[x, queries[:, tree], queries[:, x]], axis=1)
 
         # exhaustive = True
         elif exhaustive:
             log_prob = np.zeros(queries.shape[0])
             # For exhaustive search, get each combination of features and call them "states"
             states = np.array([state for state in itertools.product([0, 1], repeat=self.nFeatures)])
+            # For every state, compute the joint probability by summing over the conditionals which together define the tree structure
             states_log_probs = np.sum(params[x, states[:, tree], states[:, x]], axis=1)
-            #states_log_probs = logsumexp(params[x, states[:, tree], states[:, x]], axis=1)
+
             for i in range(queries.shape[0]):
                 # find index where query[i] is non nan
                 idx = np.where(~np.isnan(queries[i]))[0]
