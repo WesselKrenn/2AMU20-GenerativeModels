@@ -210,7 +210,7 @@ class BinaryCLT:
         # Set root value in samples
         samples[:, self.root] = np.random.binomial(1, root_prob, nSamples)
 
-        # Loop through remainder of features to sample them conditionally of their (grand)parent
+        # Loop through remainder of features to sample them conditionally
         for f in self.bfo[1:]:
             # Get parent and compute its probability
             parent = samples[:, self.tree[f]]
