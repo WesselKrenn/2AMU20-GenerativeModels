@@ -147,6 +147,8 @@ class BinaryCLT:
 
         # If query does not contain nan values, exhaustive- and message inference are equal
         if not np.isnan(queries).any():
+            # Convert queries to in8 to resolve indexerror
+            queries = queries.astype(np.int8)
             log_prob = np.sum(params[x, queries[:, tree], queries[:, x]], axis=1)
             #log_prob = logsumexp(params[x, queries[:, tree], queries[:, x]], axis=1)
 
@@ -222,30 +224,63 @@ class BinaryCLT:
         # return generated samples
         return samples
 
-
-with open('../binary_datasets/nltcs/nltcs.train.data', "r") as file:
-    reader = csv.reader(file, delimiter=',')
-    dataset = np.array(list(reader)).astype(float)
-
-
+####
+# Task 2e
+####
 def load(path):
+    """
+    Data loader function
+    :param path: Path to data file on disk
+    """
     with open(path, 'r') as file:
         reader = csv.reader(file, delimiter=',')
         data = np.array(list(reader)).astype(np.float32)
     return data
 
+# Load neccessary datasets for task 2e
 nltcs_train = load('../binary_datasets/nltcs/nltcs.train.data')
 nltcs_test = load('../binary_datasets/nltcs/nltcs.test.data')
 nltcs_marginals = load('../nltcs_marginals.data')
 
-
+# task 2e point 1: Train CLT and give list of predecessor and plot of tree.
 CLT = BinaryCLT(data=nltcs_train, root=0, alpha=0.01)
+print(f"List of predecessors CLT: {CLT.get_tree()} \n")
+# TODO: Visualize graph
 
+# Task 2e point 2: Report the CPT
+print(f"Log params / CPT of the tree are: {CLT.get_log_params()} \n")
 
-# TODO: code for 2e point 1 to 5.
+# Task 2e point 3: The average train and average test log-likelihoods,
+ll_train_mean = np.mean(CLT.log_prob(nltcs_train))
+ll_test_mean = np.mean(CLT.log_prob(nltcs_test))
+print(f"Mean train log likelihood is: {ll_train_mean}")
+print(f"Mean test log likelihood is: {ll_test_mean} \n")
 
-# task 2e.6
+# Task 2e point 4: Do exhaustive false and true deliver the same results?
+start_exh = time.time()
+exhaustive_results = CLT.log_prob(nltcs_marginals, exhaustive=True)
+end_exh = time.time()
+start_non_exh = time.time()
+non_exhaustive_results = CLT.log_prob(nltcs_marginals, exhaustive=False)
+end_non_exh = time.time()
+print(f"Average marginals LL (exhaustive = True) are: {np.mean(exhaustive_results)}")
+print(f"Average marginals LL (exhaustive = False) are: {np.mean(non_exhaustive_results)}")
+print(f"Boolean check if avg marginal LLs are equal within minimal error: {(np.abs(exhaustive_results - non_exhaustive_results) < 1e-10).all()} \n")
+
+# Task 2e point 5: Report difference in running time of both exhaustive settings, and what happens on the "Accidents" dataset?
+print(f"Time exhaustive inference took: {end_exh - start_exh}s")
+print(f"Time non exhaustive inference took: {end_non_exh - start_non_exh}s \n")
+# run marginal query with exhaustive = true for accidents dataset
+#accidents = load("../binary_datasets/accidents/accidents.test.data")
+#CLT_accidents = BinaryCLT(data=accidents, root=0, alpha=0.01)
+#exh_accidents = CLT_accidents.log_prob(nltcs_marginals[0], exhaustive=True)
+print("1 marginal query was tried on the accidents dataset but failed due to an OOM error")
+print("The dataset is likely to be to large or the manner of exhaustive search takes up too much space to be completed \n")
+
+# Task 2e.6 : take 1000 samples and compute mean log prob. Is it close to mean test log likelihood?
+# Do this task 10 times and review results to account for randomness.
 for _ in range(10):
     samples = CLT.sample(1000)
     ll_samples = CLT.log_prob(samples)
     print('Average samples LL: ', np.mean(ll_samples))
+print("It appears that the average sample LL is pretty close to the mean test log likelihood reported above.")
